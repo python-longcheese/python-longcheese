@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园墙 - 管理后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>[v-cloak] { display: none; }</style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans">
+    <div id="app" class="min-h-screen flex" v-cloak>
+        
+        <aside class="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+            <div class="p-6 border-b border-gray-700 flex items-center">
+                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold mr-3">C</div>
+                <span class="font-bold text-lg">Admin Panel</span>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <button @click="currentView = 'posts'" :class="currentView === 'posts' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'" class="w-full text-left px-4 py-3 rounded-lg transition flex items-center">
+                    <i class="fas fa-stream w-6 text-center mr-2"></i> 帖子管理
+                </button>
+                <button @click="currentView = 'users'" :class="currentView === 'users' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'" class="w-full text-left px-4 py-3 rounded-lg transition flex items-center">
+                    <i class="fas fa-users-cog w-6 text-center mr-2"></i> 人员任命
+                </button>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <div class="text-xs text-gray-500 mb-2">当前身份</div>
+                <div class="font-bold text-yellow-500 mb-4 uppercase">{{ myProfile?.role || 'Loading...' }}</div>
+                <button @click="goHome" class="w-full border border-gray-600 text-gray-400 py-2 rounded hover:text-white">返回前台</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            
+            <div v-if="!loading && (!myProfile || myProfile.role === 'user')" class="flex h-full items-center justify-center flex-col">
+                <i class="fas fa-lock text-6xl text-red-500 mb-4"></i>
+                <h2 class="text-2xl font-bold mb-2">访问被拒绝</h2>
+                <p class="text-gray-400 mb-6">您不是管理员或站长，无权访问此页面。</p>
+                <button @click="goHome" class="bg-blue-600 px-6 py-2 rounded text-white">返回首页</button>
+            </div>
+
+            <div v-else>
+                <div v-if="currentView === 'posts'">
+                    <h2 class="text-2xl font-bold mb-6 flex justify-between items-center">
+                        <span>帖子监控 ({{ posts.length }})</span>
+                        <button @click="fetchPosts" class="text-sm bg-gray-700 px-3 py-1 rounded hover:bg-gray-600"><i class="fas fa-sync"></i> 刷新</button>
+                    </h2>
+                    
+                    <div class="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-900 text-gray-400 text-xs uppercase">
+                                <tr>
+                                    <th class="px-6 py-3">内容摘要</th>
+                                    <th class="px-6 py-3">发布者</th>
+                                    <th class="px-6 py-3">状态</th>
+                                    <th class="px-6 py-3 text-right">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-700">
+                                <tr v-for="post in posts" :key="post.id" class="hover:bg-gray-750 transition">
+                                    <td class="px-6 py-4">
+                                        <p class="truncate w-64 text-sm">{{ post.content }}</p>
+                                        <p class="text-xs text-gray-500 mt-1">{{ new Date(post.created_at).toLocaleString() }}</p>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">{{ post.author_name || '匿名' }}</td>
+                                    <td class="px-6 py-4">
+                                        <span v-if="post.pinned_until > Date.now()" class="px-2 py-1 rounded text-xs bg-yellow-900 text-yellow-200 border border-yellow-700">置顶中</span>
+                                        <span v-else class="text-gray-500 text-xs">普通</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button @click="forceDelete(post.id)" class="text-red-400 hover:text-red-300 hover:bg-red-900/30 px-3 py-1 rounded transition text-xs font-bold">
+                                            强制删除
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div v-if="currentView === 'users'">
+                    <h2 class="text-2xl font-bold mb-6">人员任命</h2>
+                    
+                    <div v-if="myProfile.role !== 'master'" class="bg-yellow-900/30 border border-yellow-700 p-4 rounded text-yellow-200">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> 只有“站长 (Master)”可以任命管理员。您当前是管理员，仅拥有删帖权限。
+                    </div>
+
+                    <div v-else class="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700 mt-4">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-900 text-gray-400 text-xs uppercase">
+                                <tr>
+                                    <th class="px-6 py-3">用户邮箱</th>
+                                    <th class="px-6 py-3">当前身份</th>
+                                    <th class="px-6 py-3 text-right">权限变更</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-700">
+                                <tr v-for="u in usersList" :key="u.id">
+                                    <td class="px-6 py-4 text-sm font-mono">{{ u.email }}</td>
+                                    <td class="px-6 py-4">
+                                        <span :class="getRoleBadge(u.role)" class="px-2 py-1 rounded text-xs border uppercase font-bold">
+                                            {{ u.role }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right space-x-2">
+                                        <button v-if="u.role === 'user'" @click="updateRole(u.id, 'admin')" class="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-white">提拔为管理</button>
+                                        <button v-if="u.role === 'admin'" @click="updateRole(u.id, 'user')" class="text-xs bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-white">降职为普通</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // ==========================================
+                // 🔴 必填：你的 Supabase 密钥
+                const SUPABASE_URL = 'https://你的地址.supabase.co'; 
+                const SUPABASE_KEY = '你的anon_key'; 
+                // ==========================================
+
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                const myProfile = ref(null);
+                const posts = ref([]);
+                const usersList = ref([]);
+                const currentView = ref('posts');
+                const loading = ref(true);
+
+                onMounted(async () => {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                        alert('请先在首页登录');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    // 获取当前用户的角色
+                    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                    myProfile.value = profile;
+                    loading.value = false;
+
+                    if (profile.role !== 'user') {
+                        fetchPosts();
+                        if (profile.role === 'master') fetchUsers();
+                    }
+                });
+
+                // 获取所有帖子
+                const fetchPosts = async () => {
+                    let { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+                    posts.value = data || [];
+                };
+
+                // 获取所有用户资料 (用于任命)
+                const fetchUsers = async () => {
+                    // 排除掉自己 (master)
+                    let { data } = await supabase.from('profiles').select('*').neq('id', myProfile.value.id).order('created_at', { ascending: false });
+                    usersList.value = data || [];
+                };
+
+                // 强制删帖
+                const forceDelete = async (id) => {
+                    if(!confirm('管理员操作：确定强制删除此贴吗？此操作不可恢复。')) return;
+                    const { error } = await supabase.from('posts').delete().eq('id', id);
+                    if (error) alert('删除失败：' + error.message);
+                    else {
+                        posts.value = posts.value.filter(p => p.id !== id);
+                        alert('已强制删除');
+                    }
+                };
+
+                // 修改角色
+                const updateRole = async (targetId, newRole) => {
+                    if(!confirm(`确定将该用户设置为 ${newRole} 吗？`)) return;
+                    
+                    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', targetId);
+                    
+                    if (error) alert('操作失败：' + error.message);
+                    else {
+                        fetchUsers(); // 刷新列表
+                        alert('任命成功');
+                    }
+                };
+
+                const goHome = () => window.location.href = 'index.html';
+
+                const getRoleBadge = (role) => {
+                    if (role === 'master') return 'bg-yellow-900 text-yellow-200 border-yellow-700';
+                    if (role === 'admin') return 'bg-blue-900 text-blue-200 border-blue-700';
+                    return 'bg-gray-700 text-gray-300 border-gray-600';
+                };
+
+                return {
+                    myProfile, posts, usersList, currentView, loading,
+                    fetchPosts, forceDelete, updateRole, goHome, getRoleBadge
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
