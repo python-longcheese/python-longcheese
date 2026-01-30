@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 安全运营版</title>
+    <title>校园墙 - 全端适配版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; } /* 背景色微调 */
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 60px); }
@@ -24,97 +24,163 @@
 <body>
     <div id="app" class="min-h-screen flex flex-col" v-cloak>
         
-        <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3 flex justify-between items-center shadow-sm">
-            <div class="flex items-center" @click="activeTab = 'home'">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white mr-2 font-bold">C</div>
-                <span class="text-lg font-bold text-gray-800">CampusWall</span>
+        <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3 shadow-sm">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <div class="flex items-center cursor-pointer" @click="goHome">
+                    <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white mr-2 font-bold text-xl">C</div>
+                    <span class="text-xl font-bold text-gray-800 tracking-tight">CampusWall</span>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-4">
+                    <button v-if="!user" @click="showLoginModal = true" class="text-blue-600 font-bold hover:bg-blue-50 px-4 py-2 rounded-full transition">登录 / 注册</button>
+                    <div v-else class="flex items-center space-x-3">
+                        <span class="text-gray-600 text-sm font-bold">{{ user.email }}</span>
+                        <button @click="logout" class="text-gray-400 hover:text-red-500"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
+                </div>
+                
+                <button v-if="!user" @click="showLoginModal = true" class="md:hidden text-blue-600 font-bold text-sm">登录</button>
             </div>
-            
-            <button v-if="!user" @click="showLoginModal = true" class="text-blue-600 font-bold text-sm">登录/注册</button>
-            <button v-else-if="activeTab === 'home'" @click="showPostModal = true" class="bg-blue-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md active:scale-95 transition">
-                <i class="fas fa-plus mr-1"></i> 发帖
-            </button>
         </nav>
 
-        <main class="flex-1 w-full max-w-2xl mx-auto p-4 safe-bottom">
-            <div v-if="!user" class="bg-blue-50 border border-blue-100 text-blue-700 px-4 py-3 rounded mb-4 text-xs flex justify-between items-center">
-                <span>登录后即可发布动态和管理帖子</span>
-                <button @click="showLoginModal = true" class="underline font-bold">去登录</button>
-            </div>
+        <main class="flex-1 w-full max-w-6xl mx-auto p-4 safe-bottom md:py-8">
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+                
+                <div class="hidden md:block md:col-span-1 sticky top-24">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                        <h3 class="font-bold text-gray-400 text-xs uppercase mb-3 ml-2 tracking-wider">板块导航</h3>
+                        <div class="space-y-1">
+                            <button v-for="cat in categories" :key="cat.id" @click="switchCategory(cat.id)"
+                                :class="activeCategory === cat.id ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-600 hover:bg-gray-50'"
+                                class="w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center">
+                                <i :class="getCatIcon(cat.id)" class="w-6 text-center mr-2 opacity-70"></i>
+                                {{ cat.name }}
+                            </button>
+                        </div>
+                    </div>
 
-            <div v-show="activeTab === 'home'">
-                <div class="flex space-x-2 overflow-x-auto hide-scroll mb-4">
-                    <button v-for="cat in categories" :key="cat.id" @click="activeCategory = cat.id"
-                        :class="activeCategory === cat.id ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 border border-gray-100'"
-                        class="px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-bold transition-all flex-shrink-0 shadow-sm">
-                        {{ cat.name }}
-                    </button>
+                    <div class="mt-4 text-xs text-gray-400 px-4 leading-loose">
+                        <p>© 2024 CampusWall</p>
+                        <p>严禁发布违法违规内容</p>
+                        <p>联系管理员: admin@campus.com</p>
+                    </div>
                 </div>
 
-                <div v-if="loading" class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>
+                <div class="col-span-1 md:col-span-2 space-y-4">
+                    
+                    <div class="md:hidden flex space-x-2 overflow-x-auto hide-scroll mb-2">
+                        <button v-for="cat in categories" :key="cat.id" @click="switchCategory(cat.id)"
+                            :class="activeCategory === cat.id ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 border border-gray-100'"
+                            class="px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-bold transition-all flex-shrink-0 shadow-sm">
+                            {{ cat.name }}
+                        </button>
+                    </div>
 
-                <div v-else class="space-y-4">
-                    <div v-if="pinnedPostsList.length > 0" class="mb-6 space-y-4">
-                        <div class="flex items-center text-sm font-bold text-gray-800"><i class="fas fa-bolt text-yellow-500 mr-2"></i> 热门置顶</div>
-                        <div v-for="post in pinnedPostsList" :key="post.id" class="premium-border bg-white rounded-xl p-4 shadow-sm relative">
-                            <div class="flex justify-between items-start mb-2 relative z-10">
-                                <div class="flex items-center">
-                                    <span :class="getCatColor(post.category)" class="text-white text-[10px] px-2 py-0.5 rounded-md">{{ getCatName(post.category) }}</span>
-                                    <span class="ml-2 text-xs font-bold text-gray-700">{{ post.author_name || '匿名' }}</span>
+                    <div v-if="!user" class="bg-blue-50 border border-blue-100 text-blue-700 px-4 py-3 rounded-xl text-sm flex justify-between items-center shadow-sm">
+                        <span><i class="fas fa-info-circle mr-1"></i> 登录后即可发布和管理动态</span>
+                        <button @click="showLoginModal = true" class="underline font-bold">去登录</button>
+                    </div>
+
+                    <div v-if="loading" class="text-center py-20 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-xs">加载数据中...</p></div>
+
+                    <div v-else>
+                        <div v-if="activeTab === 'home' || activeTab === 'mine'">
+                            
+                            <div v-if="activeTab === 'home' && pinnedPostsList.length > 0" class="mb-6 space-y-4">
+                                <div class="flex items-center text-sm font-bold text-gray-800"><i class="fas fa-bolt text-yellow-500 mr-2"></i> 热门置顶</div>
+                                <div v-for="post in pinnedPostsList" :key="post.id" class="premium-border bg-white rounded-xl p-5 shadow-sm relative hover:shadow-md transition">
+                                    <div class="absolute top-0 right-0 p-2 opacity-20"><i class="fas fa-crown text-4xl text-yellow-500"></i></div>
+                                    <div class="flex justify-between items-start mb-3 relative z-10">
+                                        <div class="flex items-center">
+                                            <div :class="getCatColor(post.category)" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs mr-3"><i :class="getCatIcon(post.category)"></i></div>
+                                            <div>
+                                                <p class="text-sm font-bold text-gray-800">{{ post.author_name || '匿名同学' }}</p>
+                                                <p class="text-[10px] text-gray-400">{{ formatTimeAgo(post.created_at) }}</p>
+                                            </div>
+                                        </div>
+                                        <span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">置顶</span>
+                                    </div>
+                                    <p class="text-gray-800 text-base leading-relaxed mb-4 relative z-10 whitespace-pre-wrap">{{ post.content }}</p>
+                                    <div class="flex justify-between items-center relative z-10 border-t border-yellow-50 pt-3">
+                                        <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1 hover:bg-gray-50 px-2 py-1 rounded-lg transition">
+                                            <i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span>
+                                        </button>
+                                        <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500 px-2"><i class="fas fa-trash-alt mr-1"></i> 删除</button>
+                                    </div>
                                 </div>
-                                <span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">置顶</span>
                             </div>
-                            <p class="text-gray-800 text-sm leading-relaxed mb-3 relative z-10 whitespace-pre-wrap">{{ post.content }}</p>
-                            <div class="flex justify-between items-center relative z-10 border-t border-yellow-50 pt-3">
-                                <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-xs flex items-center space-x-1"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
-                                <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500"><i class="fas fa-trash-alt"></i> 删除</button>
+
+                            <div class="space-y-4">
+                                <h3 v-if="activeTab === 'mine'" class="font-bold text-gray-700 mb-4 pl-2 border-l-4 border-blue-500">我发布的内容</h3>
+
+                                <div v-if="(activeTab === 'home' && regularPostsList.length === 0 && pinnedPostsList.length === 0) || (activeTab === 'mine' && myPosts.length === 0)" class="text-center py-20 bg-white rounded-xl">
+                                    <div class="text-4xl mb-3 text-gray-200">📭</div>
+                                    <p class="text-gray-400 text-sm">空空如也</p>
+                                </div>
+
+                                <div v-for="post in (activeTab === 'mine' ? myPosts : regularPostsList)" :key="post.id" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div class="flex items-center">
+                                            <div :class="getCatColor(post.category)" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs mr-3"><i :class="getCatIcon(post.category)"></i></div>
+                                            <div>
+                                                <p class="text-sm font-bold text-gray-800">{{ post.author_name || '匿名' }}</p>
+                                                <p class="text-[10px] text-gray-400">{{ formatTimeAgo(post.created_at) }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-800 text-base leading-relaxed mb-4 whitespace-pre-wrap">{{ post.content }}</p>
+                                    <div class="flex justify-between items-center border-t border-gray-50 pt-3">
+                                        <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1 hover:bg-gray-50 px-2 py-1 rounded-lg transition">
+                                            <i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span>
+                                        </button>
+                                        <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500 px-2"><i class="fas fa-trash-alt mr-1"></i> 删除</button>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden md:block md:col-span-1 sticky top-24 space-y-4">
+                    
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+                        <div v-if="user">
+                            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl font-bold uppercase">{{ user.email[0] }}</div>
+                            <h2 class="font-bold text-gray-800 truncate mb-1">{{ user.email }}</h2>
+                            <p class="text-xs text-gray-400 mb-4">已认证用户</p>
+                            
+                            <div class="flex justify-around border-t border-gray-50 pt-4 mb-4">
+                                <div><div class="font-bold text-lg">{{ myPosts.length }}</div><div class="text-xs text-gray-400">动态</div></div>
+                                <div><div class="font-bold text-lg text-pink-500">{{ myTotalLikes }}</div><div class="text-xs text-gray-400">获赞</div></div>
+                            </div>
+
+                            <button @click="showPostModal = true" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200 transition transform hover:-translate-y-1">
+                                <i class="fas fa-plus mr-2"></i>发布新动态
+                            </button>
+                        </div>
+                        <div v-else>
+                            <p class="text-gray-500 text-sm mb-4">加入校园讨论，分享你的生活</p>
+                            <button @click="showLoginModal = true" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">登录 / 注册</button>
                         </div>
                     </div>
 
-                    <div v-for="post in regularPostsList" :key="post.id" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex items-center">
-                                <span :class="getCatColor(post.category)" class="text-white text-[10px] px-2 py-0.5 rounded-md">{{ getCatName(post.category) }}</span>
-                                <span class="ml-2 text-xs font-bold text-gray-500">{{ post.author_name || '匿名' }}</span>
-                            </div>
-                            <span class="text-[10px] text-gray-300">{{ formatTimeAgo(post.created_at) }}</span>
-                        </div>
-                        <p class="text-gray-700 text-sm leading-relaxed mb-3 whitespace-pre-wrap">{{ post.content }}</p>
-                        <div class="flex justify-between items-center border-t border-gray-50 pt-3">
-                            <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-xs flex items-center space-x-1"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
-                            <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500"><i class="fas fa-trash-alt"></i> 删除</button>
-                        </div>
+                    <div v-if="user" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <button @click="activeTab = 'home'; activeCategory = 'all'" :class="activeTab === 'home' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'" class="w-full text-left px-5 py-3 text-sm font-bold border-b border-gray-50 flex justify-between">
+                            <span>全部动态</span> <i class="fas fa-chevron-right text-xs pt-1"></i>
+                        </button>
+                        <button @click="activeTab = 'mine'" :class="activeTab === 'mine' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'" class="w-full text-left px-5 py-3 text-sm font-bold flex justify-between">
+                            <span>我发布的</span> <i class="fas fa-chevron-right text-xs pt-1"></i>
+                        </button>
                     </div>
-                    <div v-if="posts.length === 0" class="text-center py-10 text-gray-400 text-sm">暂无内容，快来登录发一条吧！</div>
-                </div>
-            </div>
 
-            <div v-show="activeTab === 'mine'">
-                <div v-if="!user" class="text-center py-20">
-                    <div class="text-4xl mb-4">🔒</div>
-                    <p class="text-gray-500 mb-4">请先登录查看个人中心</p>
-                    <button @click="showLoginModal = true" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">去登录</button>
                 </div>
-                <div v-else>
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6 text-center">
-                        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-bold uppercase">{{ user.email[0] }}</div>
-                        <h2 class="text-lg font-bold text-gray-800 mb-1">{{ user.email }}</h2>
-                        <button @click="logout" class="text-xs text-red-500 border border-red-200 px-3 py-1 rounded-full mt-2">退出登录</button>
-                    </div>
-                    <h3 class="font-bold text-gray-700 mb-4 pl-2 border-l-4 border-blue-500">历史发布</h3>
-                    <div class="space-y-3">
-                        <div v-for="post in myPosts" :key="post.id" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                            <div class="flex-1 pr-4"><p class="text-gray-800 text-sm truncate">{{ post.content }}</p></div>
-                            <button @click="deletePost(post.id)" class="text-red-500"><i class="fas fa-trash text-xs"></i></button>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </main>
 
-        <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center pb-safe pt-2 z-40 text-xs text-gray-400" style="padding-bottom: env(safe-area-inset-bottom);">
-            <button @click="activeTab = 'home'" :class="activeTab === 'home' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-20"><i class="fas fa-home text-xl mb-1"></i><span>首页</span></button>
+        <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center pb-safe pt-2 z-40 text-xs text-gray-400" style="padding-bottom: env(safe-area-inset-bottom);">
+            <button @click="goHome" :class="activeTab === 'home' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-20"><i class="fas fa-home text-xl mb-1"></i><span>首页</span></button>
             <div class="relative -top-6">
                 <button @click="user ? showPostModal = true : showLoginModal = true" class="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white active:scale-95 transition"><i class="fas fa-plus text-xl"></i></button>
             </div>
@@ -123,15 +189,18 @@
 
         <div v-if="showLoginModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showLoginModal = false"></div>
-            <div class="relative bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-fade-in-up">
-                <h3 class="text-xl font-bold text-gray-800 mb-6 text-center">欢迎来到校园墙</h3>
-                <input v-model="authForm.email" type="email" placeholder="电子邮箱" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 mb-3 outline-none focus:border-blue-500">
-                <input v-model="authForm.password" type="password" placeholder="密码 (至少6位)" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 mb-6 outline-none focus:border-blue-500">
+            <div class="relative bg-white w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-fade-in-up">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">欢迎加入</h3>
+                    <p class="text-gray-400 text-sm mt-1">登录后发现更多精彩</p>
+                </div>
+                <input v-model="authForm.email" type="email" placeholder="电子邮箱" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 mb-3 outline-none focus:border-blue-500 focus:bg-white transition">
+                <input v-model="authForm.password" type="password" placeholder="密码 (至少6位)" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 mb-6 outline-none focus:border-blue-500 focus:bg-white transition">
                 <div class="flex space-x-3">
-                    <button @click="handleAuth('login')" :disabled="authLoading" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:bg-gray-300">
-                        {{ authLoading ? '处理中...' : '登录' }}
+                    <button @click="handleAuth('login')" :disabled="authLoading" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:bg-gray-300 transition shadow-lg shadow-blue-100">
+                        {{ authLoading ? '...' : '登录' }}
                     </button>
-                    <button @click="handleAuth('register')" :disabled="authLoading" class="flex-1 bg-white border border-blue-600 text-blue-600 py-3 rounded-xl font-bold hover:bg-blue-50 disabled:border-gray-300 disabled:text-gray-300">
+                    <button @click="handleAuth('register')" :disabled="authLoading" class="flex-1 bg-white border border-blue-600 text-blue-600 py-3 rounded-xl font-bold hover:bg-blue-50 disabled:border-gray-300 disabled:text-gray-300 transition">
                         注册
                     </button>
                 </div>
@@ -140,16 +209,39 @@
 
         <div v-if="showPostModal" class="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showPostModal = false"></div>
-            <div class="relative bg-white w-full md:w-[500px] rounded-t-2xl md:rounded-2xl p-5 shadow-2xl animate-fade-in-up">
-                <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-800">发布新动态</h3><button @click="showPostModal = false"><i class="fas fa-times"></i></button></div>
-                <input v-model="newPost.author" type="text" placeholder="昵称 (选填)" class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs w-1/3 mb-3">
-                <textarea v-model="newPost.content" class="w-full bg-gray-50 rounded-xl p-3 mb-3 outline-none min-h-[120px] text-sm" placeholder="分享校园里的新鲜事..."></textarea>
-                <div class="flex space-x-2 overflow-x-auto mb-4 pb-1"><button v-for="cat in categories.slice(1)" :key="cat.id" @click="newPost.category = cat.id" :class="newPost.category === cat.id ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-gray-50 text-gray-500 border-transparent'" class="px-3 py-1.5 rounded-lg text-xs font-bold border whitespace-nowrap">{{ cat.name }}</button></div>
-                <div class="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg flex items-center justify-between border border-yellow-100">
-                    <div class="flex items-center"><div class="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white mr-3"><i class="fas fa-fire"></i></div><div><p class="text-xs font-bold text-gray-800">申请全站置顶</p><p class="text-[10px] text-yellow-700">提升曝光率 · ¥2.00</p></div></div>
-                    <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" v-model="newPost.isPinnedRequest" class="sr-only peer"><div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-yellow-400"></div></label>
+            <div class="relative bg-white w-full md:w-[600px] rounded-t-2xl md:rounded-2xl p-6 shadow-2xl animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                    <h3 class="text-lg font-bold text-gray-800">发布新动态</h3>
+                    <button @click="showPostModal = false" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
                 </div>
-                <button @click="submitPost" :disabled="submitting" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg disabled:bg-gray-300">{{ submitting ? '发布中...' : '立即发布' }}</button>
+                
+                <div class="flex gap-4">
+                    <div class="hidden md:block w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex-shrink-0 flex items-center justify-center font-bold">{{ user?.email[0] }}</div>
+                    
+                    <div class="flex-1">
+                        <textarea v-model="newPost.content" class="w-full bg-gray-50 hover:bg-white focus:bg-white border border-transparent focus:border-blue-200 rounded-xl p-4 mb-3 outline-none min-h-[150px] text-base transition resize-none" placeholder="分享校园里的新鲜事..."></textarea>
+                        
+                        <div class="flex items-center space-x-2 mb-4">
+                            <span class="text-xs font-bold text-gray-500">发布到:</span>
+                            <div class="flex space-x-2">
+                                <button v-for="cat in categories.slice(1)" :key="cat.id" @click="newPost.category = cat.id" :class="newPost.category === cat.id ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-gray-50 text-gray-500 border-transparent'" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition hover:scale-105">{{ cat.name }}</button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <input v-model="newPost.author" type="text" placeholder="昵称 (选填)" class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs w-full md:w-32 outline-none focus:border-blue-500">
+                            
+                            <label class="flex items-center cursor-pointer bg-yellow-50 px-3 py-2 rounded-lg border border-yellow-100 hover:bg-yellow-100 transition">
+                                <input type="checkbox" v-model="newPost.isPinnedRequest" class="w-4 h-4 text-yellow-500 rounded border-gray-300 focus:ring-yellow-500">
+                                <span class="ml-2 text-xs font-bold text-gray-700">全站置顶 (¥2.00) 🔥</span>
+                            </label>
+
+                            <button @click="submitPost" :disabled="submitting" class="w-full md:w-auto bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-200 disabled:bg-gray-300 active:scale-95 transition">
+                                {{ submitting ? '发送中...' : '发布' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -160,12 +252,12 @@
             setup() {
                 // ==========================================
                 // 🔴 必填：你的 Supabase 密钥
-                const SUPABASE_URL = 'https://ygjzvoqqstbqcjtrsayw.supabase.co'; 
-                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnanp2b3Fxc3RicWNqdHJzYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3Nzg1NTMsImV4cCI6MjA4NTM1NDU1M30.1euggQ6iafBTZpf8Sbm5cKvYGA4z-q2yUu1HA9FiRlI'; 
+                const SUPABASE_URL = 'https://你的地址.supabase.co'; 
+                const SUPABASE_KEY = '你的anon_key'; 
                 // ==========================================
 
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                const user = ref(null); // 当前登录用户
+                const user = ref(null);
                 const authLoading = ref(false);
                 const authForm = ref({ email: '', password: '' });
                 const showLoginModal = ref(false);
@@ -180,7 +272,6 @@
                 const newPost = ref({ content: '', category: 'misc', author: '', isPinnedRequest: false });
                 const likedPosts = ref(JSON.parse(localStorage.getItem('cw_liked') || '[]'));
 
-                // 1. 监听用户登录状态
                 onMounted(async () => {
                     const { data } = await supabase.auth.getSession();
                     user.value = data.session?.user || null;
@@ -188,7 +279,6 @@
                     fetchPosts();
                 });
 
-                // 2. 登录/注册逻辑
                 const handleAuth = async (type) => {
                     if (!authForm.value.email || !authForm.value.password) return alert('请填写完整');
                     authLoading.value = true;
@@ -208,12 +298,22 @@
 
                 const logout = async () => { await supabase.auth.signOut(); activeTab.value = 'home'; };
 
-                // 3. 业务逻辑
                 const fetchPosts = async () => {
                     loading.value = true;
                     let { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
                     if (!error) posts.value = data || [];
                     loading.value = false;
+                };
+
+                const switchCategory = (id) => {
+                    activeCategory.value = id;
+                    activeTab.value = 'home';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                const goHome = () => {
+                    activeTab.value = 'home';
+                    activeCategory.value = 'all';
                 };
 
                 const submitPost = async () => {
@@ -230,7 +330,6 @@
                         content: newPost.value.content,
                         category: newPost.value.category,
                         author_name: newPost.value.author || '匿名',
-                        // 注意：这里不用传 user_id，数据库会自动填入
                     }]);
                     
                     if (error) alert('发布失败: ' + error.message);
@@ -246,10 +345,9 @@
                 const deletePost = async (id) => {
                     if (!confirm('确定删除吗？')) return;
                     const { error } = await supabase.from('posts').delete().eq('id', id);
-                    if (error) alert('删除失败：你无权删除此贴'); // 数据库安全规则会拦截
+                    if (error) alert('删除失败：你无权删除此贴');
                     else {
                         posts.value = posts.value.filter(p => p.id !== id);
-                        // 重新拉取以确保同步
                         fetchPosts();
                     }
                 };
@@ -262,7 +360,6 @@
                     await supabase.from('posts').update({ likes: post.likes }).eq('id', post.id);
                 };
 
-                // 计算属性
                 const pinnedPostsList = computed(() => posts.value.filter(p => p.pinned_until && p.pinned_until > Date.now()));
                 const regularPostsList = computed(() => {
                     let list = posts.value.filter(p => !p.pinned_until || p.pinned_until <= Date.now());
@@ -270,8 +367,11 @@
                     return list;
                 });
                 const myPosts = computed(() => user.value ? posts.value.filter(p => p.user_id === user.value.id) : []);
+                const myTotalLikes = computed(() => myPosts.value.reduce((sum, p) => sum + (p.likes || 0), 0));
+
                 const getCatColor = (c) => ({ confess:'bg-pink-400', lost:'bg-blue-400', misc:'bg-purple-400' }[c] || 'bg-gray-400');
-                const getCatName = (c) => ({ all:'全部', confess:'表白', lost:'失物', misc:'闲聊' }[c] || '贴');
+                const getCatIcon = (c) => ({ confess:'fas fa-heart', lost:'fas fa-search', misc:'fas fa-coffee', all:'fas fa-layer-group' }[c] || 'fas fa-comment');
+
                 const formatTimeAgo = (dateStr) => {
                     const diff = (new Date() - new Date(dateStr)) / 1000;
                     if (diff < 60) return '刚刚';
@@ -279,12 +379,13 @@
                     if (diff < 86400) return Math.floor(diff/3600) + '小时前';
                     return new Date(dateStr).toLocaleDateString();
                 }
+                const isLiked = (id) => likedPosts.value.includes(id);
 
                 return {
                     user, showLoginModal, authForm, authLoading, handleAuth, logout,
                     activeTab, categories, activeCategory, showPostModal, posts, loading, submitting, newPost,
-                    pinnedPostsList, regularPostsList, myPosts, submitPost, deletePost, toggleLike, getCatColor, getCatName, formatTimeAgo,
-                    isLiked: (id) => likedPosts.value.includes(id)
+                    pinnedPostsList, regularPostsList, myPosts, myTotalLikes,
+                    submitPost, deletePost, toggleLike, getCatColor, getCatIcon, formatTimeAgo, isLiked, switchCategory, goHome
                 };
             }
         }).mount('#app');
