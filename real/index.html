@@ -348,15 +348,32 @@
                     if (error) alert('删除失败：你无权删除此贴');
                     else {
                         posts.value = posts.value.filter(p => p.id !== id);
-                        fetchPosts();
+                        fetchPosts(); // 确保数据同步
                     }
                 };
 
+                // 🔴 核心修改：修复后的点赞/取消点赞逻辑
                 const toggleLike = async (post) => {
-                    if (likedPosts.value.includes(post.id)) return;
-                    post.likes = (post.likes || 0) + 1;
-                    likedPosts.value.push(post.id);
+                    const isAlreadyLiked = likedPosts.value.includes(post.id);
+                    
+                    if (isAlreadyLiked) {
+                        // === 如果已赞，则执行取消点赞 ===
+                        // 1. 本地数字减 1 (防止小于0)
+                        post.likes = Math.max(0, (post.likes || 0) - 1);
+                        // 2. 从本地已赞数组中移除该ID
+                        likedPosts.value = likedPosts.value.filter(id => id !== post.id);
+                    } else {
+                        // === 如果没赞，则执行点赞 ===
+                        // 1. 本地数字加 1
+                        post.likes = (post.likes || 0) + 1;
+                        // 2. 把ID加入本地已赞数组
+                        likedPosts.value.push(post.id);
+                    }
+
+                    // 3. 保存状态到浏览器缓存
                     localStorage.setItem('cw_liked', JSON.stringify(likedPosts.value));
+
+                    // 4. 同步给数据库
                     await supabase.from('posts').update({ likes: post.likes }).eq('id', post.id);
                 };
 
@@ -392,4 +409,5 @@
     </script>
 </body>
 </html>
+
 
