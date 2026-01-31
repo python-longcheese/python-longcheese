@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 互动评论版</title>
+    <title>校园墙 - 评论互动版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
@@ -127,7 +126,7 @@
                                             
                                             <button @click="toggleComments(post.id)" class="text-sm flex items-center space-x-1 text-gray-400 hover:text-blue-500 hover:bg-gray-50 px-2 py-1 rounded-lg transition">
                                                 <i class="far fa-comment-alt"></i>
-                                                <span>{{ post.comment_count || 0 }}</span>
+                                                <span>评论</span>
                                             </button>
                                         </div>
                                         
@@ -308,9 +307,9 @@
                 const fullScreenImage = ref(null);
                 
                 // 🌟 评论相关状态
-                const expandedPosts = ref([]); // 展开了评论区的帖子ID列表
-                const postComments = ref({});  // 存储帖子评论 { postId: [comments...] }
-                const commentInputs = ref({}); // 存储输入框内容 { postId: "..." }
+                const expandedPosts = ref([]); 
+                const postComments = ref({});
+                const commentInputs = ref({});
 
                 onMounted(async () => {
                     const { data } = await supabase.auth.getSession();
@@ -325,10 +324,6 @@
 
                 const fetchPosts = async () => {
                     loading.value = true;
-                    // 注意：这里我们顺便获取评论数（如果需要精确显示，建议建一个视图，这里简化处理不显示或另外fetch）
-                    // 为了性能，我们暂时只拉取帖子。评论数可以在 UI 上先显示 post.comment_count 如果我们加了这个字段
-                    // 暂时这里不显示精确评论数，或者用 Supabase 的 count 功能。
-                    // 简单起见，我们暂不显示评论数，或者显示 '...'
                     let { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
                     posts.value = data || [];
                     loading.value = false;
@@ -337,10 +332,8 @@
                 // 🌟 评论功能函数
                 const toggleComments = async (postId) => {
                     if (expandedPosts.value.includes(postId)) {
-                        // 关闭
                         expandedPosts.value = expandedPosts.value.filter(id => id !== postId);
                     } else {
-                        // 打开并加载
                         expandedPosts.value.push(postId);
                         if (!postComments.value[postId]) {
                             const { data } = await supabase.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
@@ -357,13 +350,12 @@
                     const { error } = await supabase.from('comments').insert({
                         post_id: postId,
                         content: content,
-                        author_name: '匿名同学' // 这里简化，实际可以弹窗让用户填或者读取 profile
+                        author_name: '匿名同学' // 这里的名字可以优化，比如读取用户自定义的昵称
                     });
 
-                    if (error) alert('评论失败: ' + error.message);
+                    if (error) alert('评论失败 (可能未运行SQL): ' + error.message);
                     else {
                         commentInputs.value[postId] = '';
-                        // 重新加载评论
                         const { data } = await supabase.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
                         postComments.value[postId] = data || [];
                     }
@@ -372,11 +364,9 @@
                 const deleteComment = async (postId, commentId) => {
                     if (!confirm('确定删除评论?')) return;
                     await supabase.from('comments').delete().eq('id', commentId);
-                    // 刷新
                     postComments.value[postId] = postComments.value[postId].filter(c => c.id !== commentId);
                 };
 
-                // --- 之前的逻辑 ---
                 const handleFileSelect = (event) => {
                     const file = event.target.files[0];
                     if (!file) return;
@@ -483,7 +473,6 @@
                 const goHome = () => { activeTab.value = 'home'; activeCategory.value = 'all'; };
                 const isLiked = (id) => likedPosts.value.includes(id);
                 const pinnedPostsList = computed(() => posts.value.filter(p => p.pinned_until && p.pinned_until > Date.now()));
-                // 合并列表逻辑：置顶的在上面，普通的在下面，统一渲染
                 const displayPosts = computed(() => {
                     let list = posts.value;
                     if (activeCategory.value !== 'all') list = list.filter(p => p.category === activeCategory.value);
@@ -508,7 +497,6 @@
                     handleAuth, submitPost, deletePost, toggleLike, goHome, logout: async ()=>{await supabase.auth.signOut(); window.location.reload()},
                     displayPosts, pinnedPostsList, myPosts, myTotalLikes, isLiked, getCatColor, getCatName, formatTimeAgo,
                     fullScreenImage, previewImage, closePreview,
-                    // 评论相关
                     toggleComments, expandedPosts, postComments, commentInputs, submitComment, deleteComment
                 };
             }
@@ -516,4 +504,3 @@
     </script>
 </body>
 </html>
-
