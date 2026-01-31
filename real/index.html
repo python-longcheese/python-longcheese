@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 完美修复版</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>校园墙 - 移动端完美版</title>
+    
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/supabase.js/2.39.3/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/3.3.5/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; }
         .hide-scroll::-webkit-scrollbar { display: none; }
@@ -84,6 +86,7 @@
                                 </div>
                                 <i class="fas fa-user-circle absolute -bottom-6 -right-6 text-[150px] text-white/10"></i>
                             </div>
+                            <button @click="logout" class="md:hidden w-full mt-4 border border-red-200 text-red-500 py-2 rounded-xl font-bold bg-white">退出登录</button>
                         </div>
 
                         <div v-if="activeTab === 'home'" class="flex space-x-2 overflow-x-auto hide-scroll mb-4">
@@ -116,10 +119,7 @@
 
                                     <div class="flex justify-between items-center border-t border-yellow-50 pt-3">
                                         <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
-                                        
-                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition">
-                                            <i class="fas fa-paper-plane mr-1"></i> 私信TA
-                                        </button>
+                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition"><i class="fas fa-paper-plane mr-1"></i> 私信TA</button>
                                     </div>
                                 </div>
                             </div>
@@ -141,13 +141,9 @@
 
                                 <div class="flex justify-between items-center border-t border-gray-50 pt-3">
                                     <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1 hover:bg-gray-50 px-2 py-1 rounded-lg transition"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
-                                    
                                     <div class="flex space-x-3">
                                         <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500 transition">删除</button>
-                                        
-                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition">
-                                            <i class="fas fa-paper-plane mr-1"></i> 私信TA
-                                        </button>
+                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition"><i class="fas fa-paper-plane mr-1"></i> 私信TA</button>
                                     </div>
                                 </div>
                             </div>
@@ -194,15 +190,28 @@
         </main>
 
         <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center pb-safe pt-2 z-40 text-xs text-gray-400" style="padding-bottom: env(safe-area-inset-bottom);">
-            <button @click="goHome" :class="activeTab === 'home' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-16"><i class="fas fa-home text-xl mb-1"></i><span>首页</span></button>
-            <div class="relative -top-6">
-                <button @click="user ? showPostModal = true : showLoginModal = true" class="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white active:scale-95 transition"><i class="fas fa-plus text-xl"></i></button>
-            </div>
+            <button @click="goHome" :class="activeTab === 'home' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-16">
+                <i class="fas fa-home text-xl mb-1"></i><span>首页</span>
+            </button>
+            
             <button v-if="user" @click="activeTab = 'chat'" :class="activeTab === 'chat' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-16 relative">
                 <i class="fas fa-comment-dots text-xl mb-1"></i><span>消息</span>
-                <span v-if="unreadCount > 0" class="absolute top-1 right-3 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span v-if="unreadCount > 0" class="absolute top-1 right-4 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <button v-else @click="showLoginModal = true" class="flex flex-col items-center p-2 w-16"><i class="fas fa-user text-xl mb-1"></i><span>登录</span></button>
+            <button v-else @click="showLoginModal = true" class="flex flex-col items-center p-2 w-16">
+                <i class="fas fa-comment-dots text-xl mb-1"></i><span>消息</span>
+            </button>
+
+            <button @click="user ? showPostModal = true : showLoginModal = true" class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition -mt-4">
+                <i class="fas fa-plus text-xl"></i>
+            </button>
+
+            <button v-if="user" @click="activeTab = 'mine'" :class="activeTab === 'mine' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-16">
+                <i class="fas fa-user text-xl mb-1"></i><span>我的</span>
+            </button>
+            <button v-else @click="showLoginModal = true" class="flex flex-col items-center p-2 w-16">
+                <i class="fas fa-user text-xl mb-1"></i><span>我的</span>
+            </button>
         </nav>
 
         <transition name="zoom">
@@ -229,11 +238,18 @@
                 <div class="flex gap-3">
                     <div class="hidden md:flex w-10 h-10 bg-blue-100 text-blue-600 rounded-full items-center justify-center font-bold">{{ user?.email[0].toUpperCase() }}</div>
                     <div class="flex-1">
+                        <div class="mb-3 flex items-center bg-gray-50 rounded-xl px-3 py-2">
+                            <i class="fas fa-user-tag text-gray-400 mr-2"></i>
+                            <input v-model="newPost.author" type="text" placeholder="设置昵称 (默认: 匿名同学)" class="bg-transparent text-sm w-full outline-none text-gray-700">
+                        </div>
+
                         <textarea v-model="newPost.content" class="w-full bg-gray-50 hover:bg-white focus:bg-white border border-transparent focus:border-blue-200 rounded-xl p-4 mb-3 outline-none min-h-[100px] transition resize-none" placeholder="分享校园里的新鲜事..."></textarea>
+                        
                         <div v-if="imagePreview" class="mb-3 relative w-24 h-24 group">
                             <img :src="imagePreview" class="w-full h-full object-cover rounded-lg border border-gray-200">
                             <button @click="clearImage" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition"><i class="fas fa-times text-xs"></i></button>
                         </div>
+                        
                         <div class="flex flex-col md:flex-row justify-between items-center gap-3">
                              <div class="flex items-center w-full md:w-auto space-x-4">
                                 <label class="cursor-pointer text-gray-500 hover:text-blue-600 transition flex items-center px-2 py-1 rounded-lg hover:bg-gray-100">
@@ -261,7 +277,7 @@
         createApp({
             setup() {
                 // ==========================================
-                // 🔴 ⚠️ 替换这里！不要删掉单引号！
+                // 🔴 ⚠️ 替换这里！
                 const SUPABASE_URL = 'https://ygjzvoqqstbqcjtrsayw.supabase.co'; 
                 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnanp2b3Fxc3RicWNqdHJzYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3Nzg1NTMsImV4cCI6MjA4NTM1NDU1M30.1euggQ6iafBTZpf8Sbm5cKvYGA4z-q2yUu1HA9FiRlI'; 
                 // ==========================================
@@ -284,7 +300,8 @@
                 const showLoginModal = ref(false);
                 const showPostModal = ref(false);
                 const authForm = ref({email:'', password:''});
-                const newPost = ref({content:'', category:'misc', isPinnedRequest: false});
+                // 🌟 新增 author 字段
+                const newPost = ref({content:'', category:'misc', author: '', isPinnedRequest: false});
                 const submitting = ref(false);
                 const likedPosts = ref(JSON.parse(localStorage.getItem('cw_liked') || '[]'));
                 const fullScreenImage = ref(null);
@@ -395,7 +412,9 @@
                     const pinnedExpiration = newPost.value.isPinnedRequest ? Date.now() + (2 * 24 * 60 * 60 * 1000) : null;
 
                     const { error } = await supabase.from('posts').insert({
-                        content: newPost.value.content || '', category: newPost.value.category, author_name: newPost.value.author || '匿名', 
+                        content: newPost.value.content || '', category: newPost.value.category, 
+                        // 🌟 使用输入的昵称，如果没有则默认
+                        author_name: newPost.value.author || '匿名同学', 
                         image_url: finalImageUrl,
                         pinned_until: pinnedExpiration
                     });
@@ -438,4 +457,3 @@
     </script>
 </body>
 </html>
-
