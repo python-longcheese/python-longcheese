@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 图文版</title>
+    <title>校园墙 - 图文交互版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -19,6 +19,12 @@
         @keyframes border-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .premium-border { position: relative; z-index: 0; overflow: hidden; }
         .premium-border::before { content: ''; position: absolute; z-index: -1; inset: -2px; background: linear-gradient(45deg, #f3ec78, #af4261, #f3ec78); background-size: 200% 200%; animation: border-flow 4s ease infinite; border-radius: 18px; opacity: 0.5; }
+        
+        /* 图片放大动画 */
+        .zoom-enter-active, .zoom-leave-active { transition: opacity 0.3s ease; }
+        .zoom-enter-from, .zoom-leave-to { opacity: 0; }
+        .zoom-enter-active img, .zoom-leave-active img { transition: transform 0.3s ease; }
+        .zoom-enter-from img, .zoom-leave-to img { transform: scale(0.9); }
     </style>
 </head>
 <body>
@@ -39,7 +45,6 @@
                     <button v-if="user" @click="showPostModal = true" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-full font-bold text-sm transition mr-2">
                         <i class="fas fa-plus mr-1"></i> 发帖
                     </button>
-
                     <button v-if="!user" @click="showLoginModal = true" class="text-blue-600 font-bold hover:bg-blue-50 px-4 py-2 rounded-full transition">登录 / 注册</button>
                     <div v-else class="flex items-center space-x-3 pl-4 border-l border-gray-200">
                         <span class="text-gray-600 text-sm font-bold">{{ user.email }}</span>
@@ -51,7 +56,6 @@
         </nav>
 
         <main class="flex-1 w-full max-w-6xl mx-auto p-4 safe-bottom md:py-8">
-            
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-start h-[calc(100vh-140px)]">
                 
                 <div class="hidden md:block md:col-span-1 h-full flex flex-col">
@@ -64,30 +68,19 @@
                             </button>
                             <button v-if="user" @click="activeTab = 'mine'" :class="activeTab === 'mine' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-600 hover:bg-gray-50'" class="w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center"><i class="fas fa-user w-6 text-center mr-2"></i> 个人中心</button>
                         </div>
-
-                        <button v-if="user" @click="showPostModal = true" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200 transition transform hover:-translate-y-0.5">
-                            <i class="fas fa-pen-nib mr-2"></i> 发布动态
-                        </button>
-                        <button v-else @click="showLoginModal = true" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg">
-                            登录发帖
-                        </button>
+                        <button v-if="user" @click="showPostModal = true" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200 transition transform hover:-translate-y-0.5"><i class="fas fa-pen-nib mr-2"></i> 发布动态</button>
+                        <button v-else @click="showLoginModal = true" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg">登录发帖</button>
                     </div>
                 </div>
 
                 <div class="col-span-1 md:col-span-3 h-full overflow-hidden flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 relative">
-                    
                     <div v-if="activeTab === 'home' || activeTab === 'mine'" class="flex-1 overflow-y-auto p-4">
                         
                         <div v-if="activeTab === 'mine'" class="mb-6">
                             <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl text-white shadow-lg relative overflow-hidden">
                                 <div class="relative z-10 flex items-center">
-                                    <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-2xl font-bold mr-4 border-2 border-white/30">
-                                        {{ user?.email[0].toUpperCase() }}
-                                    </div>
-                                    <div>
-                                        <h2 class="text-xl font-bold">{{ user?.email }}</h2>
-                                        <p class="text-blue-100 text-sm flex items-center"><i class="fas fa-check-circle mr-1"></i> 已认证用户</p>
-                                    </div>
+                                    <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-2xl font-bold mr-4 border-2 border-white/30">{{ user?.email[0].toUpperCase() }}</div>
+                                    <div><h2 class="text-xl font-bold">{{ user?.email }}</h2><p class="text-blue-100 text-sm flex items-center"><i class="fas fa-check-circle mr-1"></i> 已认证用户</p></div>
                                 </div>
                                 <div class="mt-6 flex gap-8 relative z-10">
                                     <div><span class="font-bold text-lg">{{ myPosts.length }}</span> <span class="text-xs text-blue-100 ml-1">动态</span></div>
@@ -102,7 +95,6 @@
                         </div>
 
                         <div v-if="loading" class="text-center py-20 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-xs">加载中...</p></div>
-                        
                         <div v-else class="space-y-4">
                             <div v-if="activeTab === 'mine' && myPosts.length === 0" class="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                                 <i class="fas fa-ghost text-4xl text-gray-300 mb-3"></i>
@@ -121,8 +113,9 @@
                                     </div>
                                     <p class="text-gray-800 text-base mb-3 whitespace-pre-wrap">{{ post.content }}</p>
                                     
-                                    <div v-if="post.image_url" class="mb-4 rounded-lg overflow-hidden">
-                                        <img :src="post.image_url" alt="post image" class="w-full h-auto object-cover max-h-[400px]">
+                                    <div v-if="post.image_url" class="mb-4">
+                                        <img :src="post.image_url" @click.stop="previewImage(post.image_url)" 
+                                             class="w-full h-48 md:h-64 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
                                     </div>
 
                                     <div class="flex justify-between items-center border-t border-yellow-50 pt-3">
@@ -142,8 +135,9 @@
                                 </div>
                                 <p class="text-gray-800 text-base mb-3 whitespace-pre-wrap">{{ post.content }}</p>
                                 
-                                <div v-if="post.image_url" class="mb-4 rounded-lg overflow-hidden">
-                                    <img :src="post.image_url" alt="post image" class="w-full h-auto object-cover max-h-[400px]">
+                                <div v-if="post.image_url" class="mb-4">
+                                    <img :src="post.image_url" @click.stop="previewImage(post.image_url)" 
+                                         class="w-full h-48 md:h-64 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
                                 </div>
 
                                 <div class="flex justify-between items-center border-t border-gray-50 pt-3">
@@ -170,13 +164,9 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="w-full md:w-2/3 flex flex-col bg-gray-50" :class="{'hidden md:flex': !currentChatUser}">
                             <div v-if="!currentChatUser" class="flex-1 flex items-center justify-center text-gray-400">
-                                <div class="text-center">
-                                    <i class="fas fa-paper-plane text-4xl mb-2 opacity-30"></i>
-                                    <p>选择一个联系人开始聊天</p>
-                                </div>
+                                <div class="text-center"><i class="fas fa-paper-plane text-4xl mb-2 opacity-30"></i><p>选择一个联系人开始聊天</p></div>
                             </div>
                             <div v-else class="flex flex-col h-full">
                                 <div class="p-3 bg-white border-b border-gray-200 flex items-center shadow-sm z-10">
@@ -186,9 +176,7 @@
                                 <div class="flex-1 overflow-y-auto p-4 space-y-3" id="msgContainer">
                                     <div v-for="msg in chatMessages" :key="msg.id" class="flex" :class="msg.sender_id === user.id ? 'justify-end' : 'justify-start'">
                                         <div :class="msg.sender_id === user.id ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'"
-                                            class="max-w-[80%] px-4 py-2 rounded-2xl shadow-sm text-sm break-words msg-anim">
-                                            {{ msg.content }}
-                                        </div>
+                                            class="max-w-[80%] px-4 py-2 rounded-2xl shadow-sm text-sm break-words msg-anim">{{ msg.content }}</div>
                                     </div>
                                 </div>
                                 <div class="p-3 bg-white border-t border-gray-200 flex items-center space-x-2">
@@ -198,9 +186,7 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
-
             </div>
         </main>
 
@@ -215,6 +201,13 @@
             </button>
             <button v-else @click="showLoginModal = true" class="flex flex-col items-center p-2 w-16"><i class="fas fa-user text-xl mb-1"></i><span>登录</span></button>
         </nav>
+
+        <transition name="zoom">
+            <div v-if="fullScreenImage" class="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" @click="closePreview">
+                <img :src="fullScreenImage" class="max-w-full max-h-full rounded shadow-2xl object-contain" @click.stop>
+                <button class="absolute top-6 right-6 text-white/80 hover:text-white text-3xl transition" @click="closePreview">&times;</button>
+            </div>
+        </transition>
 
         <div v-if="showLoginModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showLoginModal = false"></div>
@@ -234,25 +227,22 @@
                     <div class="hidden md:flex w-10 h-10 bg-blue-100 text-blue-600 rounded-full items-center justify-center font-bold">{{ user?.email[0].toUpperCase() }}</div>
                     <div class="flex-1">
                         <textarea v-model="newPost.content" class="w-full bg-gray-50 hover:bg-white focus:bg-white border border-transparent focus:border-blue-200 rounded-xl p-4 mb-3 outline-none min-h-[100px] transition resize-none" placeholder="分享校园里的新鲜事..."></textarea>
-                        
                         <div v-if="imagePreview" class="mb-3 relative w-24 h-24 group">
                             <img :src="imagePreview" class="w-full h-full object-cover rounded-lg border border-gray-200">
                             <button @click="clearImage" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition"><i class="fas fa-times text-xs"></i></button>
                         </div>
-
                         <div class="flex flex-col md:flex-row justify-between items-center gap-3">
                              <div class="flex items-center w-full md:w-auto space-x-4">
                                 <label class="cursor-pointer text-gray-500 hover:text-blue-600 transition flex items-center px-2 py-1 rounded-lg hover:bg-gray-100">
                                     <i class="fas fa-image text-lg mr-1"></i> <span class="text-xs font-bold">图片</span>
                                     <input type="file" accept="image/*" class="hidden" @change="handleFileSelect">
                                 </label>
-                                
                                 <div class="flex space-x-1"><button v-for="cat in categories.slice(1)" :key="cat.id" @click="newPost.category = cat.id" :class="newPost.category === cat.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-50 text-gray-500'" class="px-2 py-1 rounded-lg text-xs font-bold transition">{{ cat.name }}</button></div>
                              </div>
                              <div class="flex items-center w-full md:w-auto space-x-3">
                                  <label class="flex items-center cursor-pointer"><input type="checkbox" v-model="newPost.isPinnedRequest" class="mr-1"><span class="text-xs text-yellow-600 font-bold">置顶(¥2)</span></label>
                                  <button @click="submitPost" :disabled="submitting" class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold shadow-lg transition disabled:bg-gray-300">
-                                    {{ submitting ? (uploadingImage ? '上传图片...' : '发布中...') : '发布' }}
+                                    {{ submitting ? (uploadingImage ? '上传中...' : '发布') : '发布' }}
                                 </button>
                              </div>
                         </div>
@@ -270,7 +260,8 @@
                 // ==========================================
                 // 🔴 必填：你的 Supabase 密钥
                 const SUPABASE_URL = 'https://ygjzvoqqstbqcjtrsayw.supabase.co'; 
-                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnanp2b3Fxc3RicWNqdHJzYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3Nzg1NTMsImV4cCI6MjA4NTM1NDU1M30.1euggQ6iafBTZpf8Sbm5cKvYGA4z-q2yUu1HA9FiRlI'; 
+                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnanp2b3Fxc3RicWNqdHJzYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3Nzg1NTMsImV4cCI6MjA4NTM1NDU1M30.1euggQ6iafBTZpf8Sbm5cKvYGA4z-q2yUu1HA9FiRlI
+'; 
                 // ==========================================
 
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -280,25 +271,23 @@
                 const activeCategory = ref('all');
                 const posts = ref([]);
                 const loading = ref(true);
-                
-                // 聊天相关
                 const contacts = ref([]);
                 const currentChatUser = ref(null);
                 const chatMessages = ref([]);
                 const inputMsg = ref('');
                 const unreadCount = ref(0);
-
-                // 图片上传相关
                 const selectedFile = ref(null);
                 const imagePreview = ref(null);
                 const uploadingImage = ref(false);
-
                 const showLoginModal = ref(false);
                 const showPostModal = ref(false);
                 const authForm = ref({email:'', password:''});
                 const newPost = ref({content:'', category:'misc', isPinnedRequest: false});
                 const submitting = ref(false);
                 const likedPosts = ref(JSON.parse(localStorage.getItem('cw_liked') || '[]'));
+                
+                // 🌟 新增：全屏图片状态
+                const fullScreenImage = ref(null);
 
                 onMounted(async () => {
                     const { data } = await supabase.auth.getSession();
@@ -307,7 +296,6 @@
                         user.value = _session?.user || null; 
                         if(user.value) { fetchContacts(); subscribeToMessages(); }
                     });
-
                     fetchPosts();
                     if(user.value) { fetchContacts(); subscribeToMessages(); }
                 });
@@ -319,24 +307,21 @@
                     loading.value = false;
                 };
 
-                // --- 图片处理逻辑 ---
                 const handleFileSelect = (event) => {
                     const file = event.target.files[0];
                     if (!file) return;
                     if (!file.type.startsWith('image/')) { alert('请选择图片文件'); return; }
-                    // 限制大小 (例如 5MB)
-                    if (file.size > 5 * 1024 * 1024) { alert('图片太大，请选择 5MB 以下的图片'); return; }
+                    if (file.size > 5 * 1024 * 1024) { alert('图片太大'); return; }
                     selectedFile.value = file;
-                    imagePreview.value = URL.createObjectURL(file); // 本地预览
+                    imagePreview.value = URL.createObjectURL(file);
                 };
+                const clearImage = () => { selectedFile.value = null; imagePreview.value = null; };
 
-                const clearImage = () => {
-                    selectedFile.value = null;
-                    imagePreview.value = null;
-                };
-                // ------------------
+                // 🌟 新增：图片预览逻辑
+                const previewImage = (url) => { fullScreenImage.value = url; };
+                const closePreview = () => { fullScreenImage.value = null; };
 
-                const fetchContacts = async () => { /* ...保持不变... */ 
+                const fetchContacts = async () => {
                     if (!user.value) return;
                     const { data } = await supabase.from('messages').select('*').or(`sender_id.eq.${user.value.id},receiver_id.eq.${user.value.id}`).order('created_at', { ascending: false });
                     if (!data) return;
@@ -351,7 +336,7 @@
                     }
                     contacts.value = Array.from(map.values());
                 };
-                const openChatWindow = async (targetUser) => { /* ...保持不变... */
+                const openChatWindow = async (targetUser) => {
                     currentChatUser.value = targetUser;
                     chatMessages.value = [];
                     const { data } = await supabase.from('messages').select('*')
@@ -360,7 +345,7 @@
                     chatMessages.value = data || [];
                     scrollToBottom();
                 };
-                const startChat = (targetUserId, targetUserName) => { /* ...保持不变... */
+                const startChat = (targetUserId, targetUserName) => {
                     if (!user.value) return showLoginModal.value = true;
                     activeTab.value = 'chat';
                     const existing = contacts.value.find(c => c.id === targetUserId);
@@ -368,7 +353,7 @@
                     if (!existing) contacts.value.unshift(target);
                     openChatWindow(target);
                 };
-                const sendMsg = async () => { /* ...保持不变... */
+                const sendMsg = async () => {
                     if (!inputMsg.value.trim() || !currentChatUser.value) return;
                     const txt = inputMsg.value; inputMsg.value = '';
                     chatMessages.value.push({ id: Date.now(), sender_id: user.value.id, content: txt });
@@ -376,7 +361,7 @@
                     const { error } = await supabase.from('messages').insert({ sender_id: user.value.id, receiver_id: currentChatUser.value.id, content: txt });
                     if (error) { alert('发送失败'); chatMessages.value.pop(); } else { const c = contacts.value.find(x => x.id === currentChatUser.value.id); if(c) c.lastMsg = txt; }
                 };
-                const subscribeToMessages = () => { /* ...保持不变... */
+                const subscribeToMessages = () => {
                     supabase.channel('public:messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
                         const newMsg = payload.new;
                         if (newMsg.receiver_id === user.value.id) {
@@ -392,57 +377,28 @@
                     const { error } = type === 'register' ? await supabase.auth.signUp(authForm.value) : await supabase.auth.signInWithPassword(authForm.value);
                     if(!error) showLoginModal.value = false; else alert(error.message);
                 };
-
-                // 🌟 核心修改：支持图片上传的发布逻辑
                 const submitPost = async () => { 
                     if(!newPost.value.content && !selectedFile.value) return alert('请填写内容或选择图片');
                     submitting.value = true;
-                    
                     if(newPost.value.isPinnedRequest && !confirm('确认支付2元置顶?')) { submitting.value=false; return; }
-
                     let finalImageUrl = null;
-
-                    // 1. 如果选了图，先上传图片
                     if (selectedFile.value) {
                         uploadingImage.value = true;
                         const fileExt = selectedFile.value.name.split('.').pop();
                         const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-                        const filePath = `${user.value.id}/${fileName}`; // 存放在用户目录下
-
+                        const filePath = `${user.value.id}/${fileName}`;
                         const { error: uploadError } = await supabase.storage.from('post_images').upload(filePath, selectedFile.value);
-                        
-                        if (uploadError) {
-                            alert('图片上传失败: ' + uploadError.message);
-                            submitting.value = false;
-                            uploadingImage.value = false;
-                            return;
-                        }
-
-                        // 获取公开链接
+                        if (uploadError) { alert('上传失败'); submitting.value = false; uploadingImage.value = false; return; }
                         const { data: { publicUrl } } = supabase.storage.from('post_images').getPublicUrl(filePath);
                         finalImageUrl = publicUrl;
                         uploadingImage.value = false;
                     }
-
-                    // 2. 插入数据库记录
                     const { error } = await supabase.from('posts').insert({
-                        content: newPost.value.content || '', // 允许纯图片贴
-                        category: newPost.value.category,
-                        author_name: newPost.value.author || '匿名',
-                        image_url: finalImageUrl // 写入图片链接
+                        content: newPost.value.content || '', category: newPost.value.category, author_name: newPost.value.author || '匿名', image_url: finalImageUrl
                     });
-
-                    if (error) {
-                        alert('发布失败: ' + error.message);
-                    } else {
-                        newPost.value.content = '';
-                        clearImage(); // 清空图片选择
-                        showPostModal.value = false;
-                        fetchPosts();
-                    }
+                    if (error) alert('发布失败'); else { newPost.value.content = ''; clearImage(); showPostModal.value = false; fetchPosts(); }
                     submitting.value = false;
                 };
-
                 const deletePost = async (id) => { if(confirm('删?')) { await supabase.from('posts').delete().eq('id',id); fetchPosts(); } };
                 const toggleLike = async (post) => { 
                     if(likedPosts.value.includes(post.id)) { post.likes--; likedPosts.value=likedPosts.value.filter(x=>x!==post.id); }
@@ -471,7 +427,8 @@
                     selectedFile, imagePreview, uploadingImage, handleFileSelect, clearImage,
                     fetchPosts, startChat, openChatWindow, sendMsg,
                     handleAuth, submitPost, deletePost, toggleLike, goHome, logout: async ()=>{await supabase.auth.signOut(); window.location.reload()},
-                    pinnedPostsList, regularPostsList, myPosts, myTotalLikes, isLiked, getCatColor, getCatName, formatTimeAgo
+                    pinnedPostsList, regularPostsList, myPosts, myTotalLikes, isLiked, getCatColor, getCatName, formatTimeAgo,
+                    fullScreenImage, previewImage, closePreview
                 };
             }
         }).mount('#app');
