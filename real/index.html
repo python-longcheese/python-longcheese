@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 精致图文版</title>
+    <title>校园墙 - 完整修复版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -368,6 +368,8 @@
                     const { error } = type === 'register' ? await supabase.auth.signUp(authForm.value) : await supabase.auth.signInWithPassword(authForm.value);
                     if(!error) showLoginModal.value = false; else alert(error.message);
                 };
+                
+                // 🌟 核心逻辑：发帖包含图片上传 & 置顶计算
                 const submitPost = async () => { 
                     if(!newPost.value.content && !selectedFile.value) return alert('请填写内容或选择图片');
                     submitting.value = true;
@@ -384,12 +386,20 @@
                         finalImageUrl = publicUrl;
                         uploadingImage.value = false;
                     }
+                    
+                    // 计算置顶时间 (2天)
+                    const pinnedExpiration = newPost.value.isPinnedRequest ? Date.now() + (2 * 24 * 60 * 60 * 1000) : null;
+
                     const { error } = await supabase.from('posts').insert({
-                        content: newPost.value.content || '', category: newPost.value.category, author_name: newPost.value.author || '匿名', image_url: finalImageUrl
+                        content: newPost.value.content || '', category: newPost.value.category, 
+                        author_name: newPost.value.author || '匿名', 
+                        image_url: finalImageUrl,
+                        pinned_until: pinnedExpiration // 写入置顶时间
                     });
                     if (error) alert('发布失败'); else { newPost.value.content = ''; clearImage(); showPostModal.value = false; fetchPosts(); }
                     submitting.value = false;
                 };
+
                 const deletePost = async (id) => { if(confirm('删?')) { await supabase.from('posts').delete().eq('id',id); fetchPosts(); } };
                 const toggleLike = async (post) => { 
                     if(likedPosts.value.includes(post.id)) { post.likes--; likedPosts.value=likedPosts.value.filter(x=>x!==post.id); }
