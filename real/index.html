@@ -375,4 +375,27 @@
 
                 const goHome = () => { activeTab.value = 'home'; activeCategory.value = 'all'; };
                 const isLiked = (id) => likedPosts.value.includes(id);
-                const pinnedPostsList = computed(() => posts.value.filter(p => p.pinned_until && p.pinned
+                const pinnedPostsList = computed(() => posts.value.filter(p => p.pinned_until && p.pinned_until > Date.now()));
+                const regularPostsList = computed(() => {
+                    let list = posts.value.filter(p => !p.pinned_until || p.pinned_until <= Date.now());
+                    if (activeCategory.value !== 'all') list = list.filter(p => p.category === activeCategory.value);
+                    return list;
+                });
+                const myPosts = computed(() => user.value ? posts.value.filter(p => p.user_id === user.value.id) : []);
+                const getCatColor = (c) => ({ confess:'bg-pink-400', lost:'bg-blue-400', misc:'bg-purple-400' }[c] || 'bg-gray-400');
+                const getCatName = (c) => ({ all:'全部', confess:'表白', lost:'失物', misc:'闲聊' }[c] || '贴');
+                const formatTimeAgo = (d) => new Date(d).toLocaleDateString();
+
+                return {
+                    user, activeTab, categories, activeCategory, posts, loading,
+                    contacts, currentChatUser, chatMessages, inputMsg, unreadCount,
+                    showLoginModal, showPostModal, authForm, newPost, submitting,
+                    fetchPosts, startChat, openChatWindow, sendMsg,
+                    handleAuth, submitPost, deletePost, toggleLike, goHome,
+                    pinnedPostsList, regularPostsList, myPosts, isLiked, getCatColor, getCatName, formatTimeAgo
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
