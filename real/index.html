@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 移动端完美版</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>校园墙 - 互动评论版</title>
+    
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/supabase.js/2.39.3/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/3.3.5/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
@@ -100,50 +101,56 @@
                                 <button @click="showPostModal = true" class="mt-4 text-blue-600 font-bold text-xs hover:underline">去发第一条动态</button>
                             </div>
 
-                            <div v-if="activeTab === 'home' && pinnedPostsList.length > 0">
-                                <div class="flex items-center text-sm font-bold text-gray-800 mb-2"><i class="fas fa-bolt text-yellow-500 mr-2"></i> 热门置顶</div>
-                                <div v-for="post in pinnedPostsList" :key="post.id" class="premium-border bg-white rounded-xl p-5 shadow-sm mb-4 border border-yellow-50">
-                                    <div class="flex justify-between items-start mb-3">
+                            <div v-for="post in displayPosts" :key="post.id" class="bg-white rounded-xl shadow-sm border overflow-hidden transition" :class="post.pinned_until > Date.now() ? 'border-yellow-200 premium-border' : 'border-gray-100'">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-3 relative z-10">
                                         <div class="flex items-center">
-                                            <span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded font-bold mr-2">置顶</span>
+                                            <span v-if="post.pinned_until > Date.now()" class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded font-bold mr-2">置顶</span>
+                                            <span :class="getCatColor(post.category)" class="text-white text-[10px] px-2 py-0.5 rounded-md mr-2" v-else>{{ getCatName(post.category) }}</span>
                                             <span class="text-sm font-bold text-gray-800">{{ post.author_name || '匿名' }}</span>
                                         </div>
+                                        <span class="text-[10px] text-gray-300">{{ formatTimeAgo(post.created_at) }}</span>
                                     </div>
-                                    <p class="text-gray-800 text-base mb-3 whitespace-pre-wrap">{{ post.content }}</p>
                                     
-                                    <div v-if="post.image_url" class="mb-4">
+                                    <p class="text-gray-800 text-base mb-3 whitespace-pre-wrap relative z-10">{{ post.content }}</p>
+                                    
+                                    <div v-if="post.image_url" class="mb-4 relative z-10">
                                         <img :src="post.image_url" @click.stop="previewImage(post.image_url)" 
                                              class="w-32 h-32 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
                                     </div>
 
-                                    <div class="flex justify-between items-center border-t border-yellow-50 pt-3">
-                                        <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
-                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition"><i class="fas fa-paper-plane mr-1"></i> 私信TA</button>
+                                    <div class="flex justify-between items-center border-t border-gray-50 pt-3 relative z-10">
+                                        <div class="flex space-x-4">
+                                            <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1 hover:bg-gray-50 px-2 py-1 rounded-lg transition"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
+                                            
+                                            <button @click="toggleComments(post.id)" class="text-sm flex items-center space-x-1 text-gray-400 hover:text-blue-500 hover:bg-gray-50 px-2 py-1 rounded-lg transition">
+                                                <i class="far fa-comment-alt"></i>
+                                                <span>{{ post.comment_count || 0 }}</span>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="flex space-x-2">
+                                            <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500 transition px-2">删除</button>
+                                            <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition"><i class="fas fa-paper-plane mr-1"></i> 私信</button>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div v-for="post in (activeTab === 'mine' ? myPosts : regularPostsList)" :key="post.id" class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition">
-                                <div class="flex justify-between items-start mb-2">
-                                    <div class="flex items-center">
-                                        <span :class="getCatColor(post.category)" class="text-white text-[10px] px-2 py-0.5 rounded-md mr-2">{{ getCatName(post.category) }}</span>
-                                        <span class="text-sm font-bold text-gray-600">{{ post.author_name || '匿名' }}</span>
-                                    </div>
-                                    <span class="text-[10px] text-gray-300">{{ formatTimeAgo(post.created_at) }}</span>
-                                </div>
-                                <p class="text-gray-800 text-base mb-3 whitespace-pre-wrap">{{ post.content }}</p>
-                                
-                                <div v-if="post.image_url" class="mb-4">
-                                    <img :src="post.image_url" @click.stop="previewImage(post.image_url)" 
-                                         class="w-32 h-32 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
                                 </div>
 
-                                <div class="flex justify-between items-center border-t border-gray-50 pt-3">
-                                    <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1 hover:bg-gray-50 px-2 py-1 rounded-lg transition"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
-                                    <div class="flex space-x-3">
-                                        <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500 transition">删除</button>
-                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition"><i class="fas fa-paper-plane mr-1"></i> 私信TA</button>
+                                <div v-if="expandedPosts.includes(post.id)" class="bg-gray-50 border-t border-gray-100 p-4 animate-fade-in-up">
+                                    
+                                    <div class="flex gap-2 mb-4">
+                                        <input v-model="commentInputs[post.id]" type="text" placeholder="写下你的评论..." class="flex-1 bg-white border border-gray-200 rounded-full px-4 py-2 text-sm outline-none focus:border-blue-400 transition" @keyup.enter="submitComment(post.id)">
+                                        <button @click="submitComment(post.id)" class="bg-blue-600 text-white rounded-full w-16 text-xs font-bold hover:bg-blue-700 transition">发送</button>
                                     </div>
+
+                                    <div v-if="postComments[post.id] && postComments[post.id].length > 0" class="space-y-3">
+                                        <div v-for="comment in postComments[post.id]" :key="comment.id" class="flex gap-2 text-sm group">
+                                            <div class="font-bold text-gray-700 whitespace-nowrap">{{ comment.author_name || '匿名' }}:</div>
+                                            <div class="text-gray-600 flex-1 break-all">{{ comment.content }}</div>
+                                            <button v-if="user && user.id === comment.user_id" @click="deleteComment(post.id, comment.id)" class="text-gray-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    </div>
+                                    <div v-else class="text-center text-gray-400 text-xs py-2">暂无评论，快来抢沙发~</div>
                                 </div>
                             </div>
                         </div>
@@ -192,7 +199,6 @@
             <button @click="goHome" :class="activeTab === 'home' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-16">
                 <i class="fas fa-home text-xl mb-1"></i><span>首页</span>
             </button>
-            
             <button v-if="user" @click="activeTab = 'chat'" :class="activeTab === 'chat' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-16 relative">
                 <i class="fas fa-comment-dots text-xl mb-1"></i><span>消息</span>
                 <span v-if="unreadCount > 0" class="absolute top-1 right-4 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -200,11 +206,9 @@
             <button v-else @click="showLoginModal = true" class="flex flex-col items-center p-2 w-16">
                 <i class="fas fa-comment-dots text-xl mb-1"></i><span>消息</span>
             </button>
-
             <button @click="user ? showPostModal = true : showLoginModal = true" class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition -mt-4">
                 <i class="fas fa-plus text-xl"></i>
             </button>
-
             <button v-if="user" @click="activeTab = 'mine'" :class="activeTab === 'mine' ? 'text-blue-600' : ''" class="flex flex-col items-center p-2 w-16">
                 <i class="fas fa-user text-xl mb-1"></i><span>我的</span>
             </button>
@@ -241,14 +245,11 @@
                             <i class="fas fa-user-tag text-gray-400 mr-2"></i>
                             <input v-model="newPost.author" type="text" placeholder="设置昵称 (默认: 匿名同学)" class="bg-transparent text-sm w-full outline-none text-gray-700">
                         </div>
-
                         <textarea v-model="newPost.content" class="w-full bg-gray-50 hover:bg-white focus:bg-white border border-transparent focus:border-blue-200 rounded-xl p-4 mb-3 outline-none min-h-[100px] transition resize-none" placeholder="分享校园里的新鲜事..."></textarea>
-                        
                         <div v-if="imagePreview" class="mb-3 relative w-24 h-24 group">
                             <img :src="imagePreview" class="w-full h-full object-cover rounded-lg border border-gray-200">
                             <button @click="clearImage" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition"><i class="fas fa-times text-xs"></i></button>
                         </div>
-                        
                         <div class="flex flex-col md:flex-row justify-between items-center gap-3">
                              <div class="flex items-center w-full md:w-auto space-x-4">
                                 <label class="cursor-pointer text-gray-500 hover:text-blue-600 transition flex items-center px-2 py-1 rounded-lg hover:bg-gray-100">
@@ -299,11 +300,15 @@
                 const showLoginModal = ref(false);
                 const showPostModal = ref(false);
                 const authForm = ref({email:'', password:''});
-                // 🌟 新增 author 字段
                 const newPost = ref({content:'', category:'misc', author: '', isPinnedRequest: false});
                 const submitting = ref(false);
                 const likedPosts = ref(JSON.parse(localStorage.getItem('cw_liked') || '[]'));
                 const fullScreenImage = ref(null);
+                
+                // 🌟 评论相关状态
+                const expandedPosts = ref([]); // 展开了评论区的帖子ID列表
+                const postComments = ref({});  // 存储帖子评论 { postId: [comments...] }
+                const commentInputs = ref({}); // 存储输入框内容 { postId: "..." }
 
                 onMounted(async () => {
                     const { data } = await supabase.auth.getSession();
@@ -318,11 +323,58 @@
 
                 const fetchPosts = async () => {
                     loading.value = true;
+                    // 注意：这里我们顺便获取评论数（如果需要精确显示，建议建一个视图，这里简化处理不显示或另外fetch）
+                    // 为了性能，我们暂时只拉取帖子。评论数可以在 UI 上先显示 post.comment_count 如果我们加了这个字段
+                    // 暂时这里不显示精确评论数，或者用 Supabase 的 count 功能。
+                    // 简单起见，我们暂不显示评论数，或者显示 '...'
                     let { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
                     posts.value = data || [];
                     loading.value = false;
                 };
 
+                // 🌟 评论功能函数
+                const toggleComments = async (postId) => {
+                    if (expandedPosts.value.includes(postId)) {
+                        // 关闭
+                        expandedPosts.value = expandedPosts.value.filter(id => id !== postId);
+                    } else {
+                        // 打开并加载
+                        expandedPosts.value.push(postId);
+                        if (!postComments.value[postId]) {
+                            const { data } = await supabase.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+                            postComments.value[postId] = data || [];
+                        }
+                    }
+                };
+
+                const submitComment = async (postId) => {
+                    if (!user.value) return showLoginModal.value = true;
+                    const content = commentInputs.value[postId];
+                    if (!content || !content.trim()) return;
+
+                    const { error } = await supabase.from('comments').insert({
+                        post_id: postId,
+                        content: content,
+                        author_name: '匿名同学' // 这里简化，实际可以弹窗让用户填或者读取 profile
+                    });
+
+                    if (error) alert('评论失败: ' + error.message);
+                    else {
+                        commentInputs.value[postId] = '';
+                        // 重新加载评论
+                        const { data } = await supabase.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+                        postComments.value[postId] = data || [];
+                    }
+                };
+
+                const deleteComment = async (postId, commentId) => {
+                    if (!confirm('确定删除评论?')) return;
+                    await supabase.from('comments').delete().eq('id', commentId);
+                    // 刷新
+                    postComments.value[postId] = postComments.value[postId].filter(c => c.id !== commentId);
+                };
+
+                // --- 之前的逻辑 ---
                 const handleFileSelect = (event) => {
                     const file = event.target.files[0];
                     if (!file) return;
@@ -412,7 +464,6 @@
 
                     const { error } = await supabase.from('posts').insert({
                         content: newPost.value.content || '', category: newPost.value.category, 
-                        // 🌟 使用输入的昵称，如果没有则默认
                         author_name: newPost.value.author || '匿名同学', 
                         image_url: finalImageUrl,
                         pinned_until: pinnedExpiration
@@ -430,11 +481,16 @@
                 const goHome = () => { activeTab.value = 'home'; activeCategory.value = 'all'; };
                 const isLiked = (id) => likedPosts.value.includes(id);
                 const pinnedPostsList = computed(() => posts.value.filter(p => p.pinned_until && p.pinned_until > Date.now()));
-                const regularPostsList = computed(() => {
-                    let list = posts.value.filter(p => !p.pinned_until || p.pinned_until <= Date.now());
+                // 合并列表逻辑：置顶的在上面，普通的在下面，统一渲染
+                const displayPosts = computed(() => {
+                    let list = posts.value;
                     if (activeCategory.value !== 'all') list = list.filter(p => p.category === activeCategory.value);
-                    return list;
+                    
+                    const pinned = list.filter(p => p.pinned_until && p.pinned_until > Date.now());
+                    const regular = list.filter(p => !p.pinned_until || p.pinned_until <= Date.now());
+                    return [...pinned, ...regular];
                 });
+                
                 const myPosts = computed(() => user.value ? posts.value.filter(p => p.user_id === user.value.id) : []);
                 const myTotalLikes = computed(() => myPosts.value.reduce((sum, p) => sum + (p.likes || 0), 0));
                 const getCatColor = (c) => ({ confess:'bg-pink-400', lost:'bg-blue-400', misc:'bg-purple-400' }[c] || 'bg-gray-400');
@@ -448,13 +504,13 @@
                     selectedFile, imagePreview, uploadingImage, handleFileSelect, clearImage,
                     fetchPosts, startChat, openChatWindow, sendMsg,
                     handleAuth, submitPost, deletePost, toggleLike, goHome, logout: async ()=>{await supabase.auth.signOut(); window.location.reload()},
-                    pinnedPostsList, regularPostsList, myPosts, myTotalLikes, isLiked, getCatColor, getCatName, formatTimeAgo,
-                    fullScreenImage, previewImage, closePreview
+                    displayPosts, pinnedPostsList, myPosts, myTotalLikes, isLiked, getCatColor, getCatName, formatTimeAgo,
+                    fullScreenImage, previewImage, closePreview,
+                    // 评论相关
+                    toggleComments, expandedPosts, postComments, commentInputs, submitComment, deleteComment
                 };
             }
         }).mount('#app');
     </script>
 </body>
 </html>
-
-
