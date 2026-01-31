@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 完整修复版</title>
+    <title>校园墙 - 完美修复版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -116,7 +116,10 @@
 
                                     <div class="flex justify-between items-center border-t border-yellow-50 pt-3">
                                         <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
-                                        <button v-if="user && post.user_id !== user.id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition"><i class="fas fa-paper-plane mr-1"></i> 私信TA</button>
+                                        
+                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition">
+                                            <i class="fas fa-paper-plane mr-1"></i> 私信TA
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -138,9 +141,13 @@
 
                                 <div class="flex justify-between items-center border-t border-gray-50 pt-3">
                                     <button @click="toggleLike(post)" :class="isLiked(post.id) ? 'text-pink-500' : 'text-gray-400'" class="text-sm flex items-center space-x-1 hover:bg-gray-50 px-2 py-1 rounded-lg transition"><i :class="isLiked(post.id) ? 'fas fa-heart' : 'far fa-heart'"></i><span>{{ post.likes || 0 }}</span></button>
+                                    
                                     <div class="flex space-x-3">
                                         <button v-if="user && post.user_id === user.id" @click="deletePost(post.id)" class="text-xs text-gray-300 hover:text-red-500 transition">删除</button>
-                                        <button v-if="user && post.user_id !== user.id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition"><i class="fas fa-paper-plane mr-1"></i> 私信TA</button>
+                                        
+                                        <button v-if="user?.id !== post.user_id" @click="startChat(post.user_id, post.author_name)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition">
+                                            <i class="fas fa-paper-plane mr-1"></i> 私信TA
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -368,8 +375,6 @@
                     const { error } = type === 'register' ? await supabase.auth.signUp(authForm.value) : await supabase.auth.signInWithPassword(authForm.value);
                     if(!error) showLoginModal.value = false; else alert(error.message);
                 };
-                
-                // 🌟 核心逻辑：发帖包含图片上传 & 置顶计算
                 const submitPost = async () => { 
                     if(!newPost.value.content && !selectedFile.value) return alert('请填写内容或选择图片');
                     submitting.value = true;
@@ -387,19 +392,16 @@
                         uploadingImage.value = false;
                     }
                     
-                    // 计算置顶时间 (2天)
                     const pinnedExpiration = newPost.value.isPinnedRequest ? Date.now() + (2 * 24 * 60 * 60 * 1000) : null;
 
                     const { error } = await supabase.from('posts').insert({
-                        content: newPost.value.content || '', category: newPost.value.category, 
-                        author_name: newPost.value.author || '匿名', 
+                        content: newPost.value.content || '', category: newPost.value.category, author_name: newPost.value.author || '匿名', 
                         image_url: finalImageUrl,
-                        pinned_until: pinnedExpiration // 写入置顶时间
+                        pinned_until: pinnedExpiration
                     });
                     if (error) alert('发布失败'); else { newPost.value.content = ''; clearImage(); showPostModal.value = false; fetchPosts(); }
                     submitting.value = false;
                 };
-
                 const deletePost = async (id) => { if(confirm('删?')) { await supabase.from('posts').delete().eq('id',id); fetchPosts(); } };
                 const toggleLike = async (post) => { 
                     if(likedPosts.value.includes(post.id)) { post.likes--; likedPosts.value=likedPosts.value.filter(x=>x!==post.id); }
