@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校园墙 - 图文交互版</title>
+    <title>校园墙 - 精致图文版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,18 +13,14 @@
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 60px); }
-        [v-cloak] { display: none; }
+        [v-cloak] { display: none !important; }
         .msg-anim { animation: fadeInUp 0.3s ease-out; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes border-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .premium-border { position: relative; z-index: 0; overflow: hidden; }
         .premium-border::before { content: ''; position: absolute; z-index: -1; inset: -2px; background: linear-gradient(45deg, #f3ec78, #af4261, #f3ec78); background-size: 200% 200%; animation: border-flow 4s ease infinite; border-radius: 18px; opacity: 0.5; }
-        
-        /* 图片放大动画 */
         .zoom-enter-active, .zoom-leave-active { transition: opacity 0.3s ease; }
         .zoom-enter-from, .zoom-leave-to { opacity: 0; }
-        .zoom-enter-active img, .zoom-leave-active img { transition: transform 0.3s ease; }
-        .zoom-enter-from img, .zoom-leave-to img { transform: scale(0.9); }
     </style>
 </head>
 <body>
@@ -115,7 +111,7 @@
                                     
                                     <div v-if="post.image_url" class="mb-4">
                                         <img :src="post.image_url" @click.stop="previewImage(post.image_url)" 
-                                             class="w-full h-48 md:h-64 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
+                                             class="w-32 h-32 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
                                     </div>
 
                                     <div class="flex justify-between items-center border-t border-yellow-50 pt-3">
@@ -137,7 +133,7 @@
                                 
                                 <div v-if="post.image_url" class="mb-4">
                                     <img :src="post.image_url" @click.stop="previewImage(post.image_url)" 
-                                         class="w-full h-48 md:h-64 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
+                                         class="w-32 h-32 object-cover rounded-lg cursor-zoom-in border border-gray-100 hover:opacity-95 transition">
                                 </div>
 
                                 <div class="flex justify-between items-center border-t border-gray-50 pt-3">
@@ -203,13 +199,13 @@
         </nav>
 
         <transition name="zoom">
-            <div v-if="fullScreenImage" class="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" @click="closePreview">
+            <div v-show="fullScreenImage" style="display: none;" class="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" @click="closePreview">
                 <img :src="fullScreenImage" class="max-w-full max-h-full rounded shadow-2xl object-contain" @click.stop>
                 <button class="absolute top-6 right-6 text-white/80 hover:text-white text-3xl transition" @click="closePreview">&times;</button>
             </div>
         </transition>
 
-        <div v-if="showLoginModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div v-show="showLoginModal" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showLoginModal = false"></div>
             <div class="relative bg-white w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-fade-in-up">
                 <h3 class="text-2xl font-bold text-center mb-6">登录校园墙</h3>
@@ -219,7 +215,7 @@
             </div>
         </div>
         
-        <div v-if="showPostModal" class="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
+        <div v-show="showPostModal" style="display: none;" class="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showPostModal = false"></div>
             <div class="relative bg-white w-full md:w-[600px] rounded-t-2xl md:rounded-2xl p-6 shadow-2xl animate-fade-in-up">
                 <div class="flex justify-between mb-4 border-b border-gray-100 pb-3"><h3 class="font-bold text-gray-800">发布新动态</h3><button @click="showPostModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button></div>
@@ -258,7 +254,7 @@
         createApp({
             setup() {
                 // ==========================================
-                // 🔴 必填：你的 Supabase 密钥
+                // 🔴 ⚠️ 替换这里！不要删掉单引号！
                 const SUPABASE_URL = 'https://ygjzvoqqstbqcjtrsayw.supabase.co'; 
                 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnanp2b3Fxc3RicWNqdHJzYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3Nzg1NTMsImV4cCI6MjA4NTM1NDU1M30.1euggQ6iafBTZpf8Sbm5cKvYGA4z-q2yUu1HA9FiRlI'; 
                 // ==========================================
@@ -284,8 +280,6 @@
                 const newPost = ref({content:'', category:'misc', isPinnedRequest: false});
                 const submitting = ref(false);
                 const likedPosts = ref(JSON.parse(localStorage.getItem('cw_liked') || '[]'));
-                
-                // 🌟 新增：全屏图片状态
                 const fullScreenImage = ref(null);
 
                 onMounted(async () => {
@@ -315,8 +309,6 @@
                     imagePreview.value = URL.createObjectURL(file);
                 };
                 const clearImage = () => { selectedFile.value = null; imagePreview.value = null; };
-
-                // 🌟 新增：图片预览逻辑
                 const previewImage = (url) => { fullScreenImage.value = url; };
                 const closePreview = () => { fullScreenImage.value = null; };
 
@@ -434,4 +426,3 @@
     </script>
 </body>
 </html>
-
